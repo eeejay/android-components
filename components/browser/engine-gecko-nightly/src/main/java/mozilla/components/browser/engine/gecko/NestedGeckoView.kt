@@ -48,13 +48,11 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         val event = MotionEvent.obtain(ev)
         val action = ev.actionMasked
+        val eventY = ev.y.toInt()
 
         if (action == MotionEvent.ACTION_DOWN) {
             nestedOffsetY = 0
         }
-
-        val eventY = event.y.toInt()
-        event.offsetLocation(0f, nestedOffsetY.toFloat())
 
         when (action) {
             MotionEvent.ACTION_MOVE -> {
@@ -65,6 +63,8 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
                     deltaY -= scrollConsumed[1]
                     event.offsetLocation(0f, (-scrollOffset[1]).toFloat())
                     nestedOffsetY += scrollOffset[1]
+                    // Tell APZ we are in a nested scroll.
+                    panZoomController.setNestedScrolling(true)
                 }
 
                 lastY = eventY - scrollOffset[1]
@@ -81,7 +81,10 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
                 startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL)
             }
             // We don't care about other touch events
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> stopNestedScroll()
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                panZoomController.setNestedScrolling(false)
+                stopNestedScroll()
+            }
         }
 
         // Execute event handler from parent class in all cases
